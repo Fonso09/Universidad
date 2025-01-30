@@ -1,3 +1,4 @@
+
 #include <stm32f7xx.h>
 #include <stdio.h>
 void RCC_SETUP();
@@ -8,18 +9,24 @@ void DAC_SETUP();
 void USART_SETUP();
 void USART3_SendChar(int value);
 void Serial_buffer(char *send_txt);
+float map(int value, int fromLow, int fromHigh, int toLow, int toHigh);
 int send = 0, adc = 0;
+float adc_mapped = 0;
 char tx_txt[10];
 int main(){
 	RCC_SETUP();
-    GPIO_SETUP();
-	TIM_Config();
     ADC_SETUP();
     DAC_SETUP();
+    GPIO_SETUP();
+	TIM_Config();
+    USART_SETUP();
+
 	while(1){
         ADC1->CR2 |= (1<<30); // INICIO CONVERSION
         while((ADC1->SR & (1<<1)) == 0){ADC1->SR = 0;} 
         adc = ADC1->DR;
+        adc_mapped = map(adc,0,4096,0,100);
+
 	    if(send == 1){
 //		    ADC1->CR2 |= (1<<30); // INICIO CONVERSION
 //          while((ADC1->SR & (1<<1)) == 0){ADC1->SR = 0;} 
@@ -34,6 +41,11 @@ int main(){
 		
 	};
 	
+}
+float map(int value, int fromLow, int fromHigh, int toLow, int toHigh) {
+    if(value < fromLow) return toLow;
+    if(value > fromHigh) return toHigh;
+    return (value - fromLow) * (toHigh - toLow) / (fromHigh - fromLow) + toLow;
 }
 void Serial_buffer(char *send_txt){
     while(*send_txt != '\n'){
@@ -52,12 +64,11 @@ void USART3_SendChar(int value){
 void RCC_SETUP(){
 	RCC-> AHB1ENR |= 0xFF; //Activa los puertos de la A a la F
     RCC->APB1ENR |= (1<<18)|(1<<3)|(1<<2)|(1<<29); //habilita el USART3, Habilita TIM5, Habilita TIM4 y habilita el DAC
-    RCC->APB2ENR |= (1<<8); //habilita el ADC1
+    RCC->APB2ENR |= (1<<5)|(7<<8); //Habilita el USART6 Y ADC 1,2 y 3
 }
 
 void GPIO_SETUP(){
-    GPIOC->MODER |= (0<<26)|(3<<0); // PC13 es el boton de Usuario que sera el boton para el Paro de Emergencia, y ADC para PC0
-    GPIOC->PUPDR |= (2<<26); // pull down el pin PC13
+    GPIOC->MODER |= 0X3; // ADC para PC0
 
     GPIOB->MODER |= (1<<14)|(1<<28)|(1<<18); //LEDS PRUEBA de la placa PB7 y PB14
 
@@ -80,8 +91,8 @@ void TIM_Config(){
     TIM4->CR1|=0X1; //Habilitar conteo
 	NVIC_EnableIRQ(TIM4_IRQn); //Por si queremos la interrupcion que igual trabaja con el ARR
 
-    TIM5->PSC = 16-1;  // Para tener 5KHz, que es x10 la frecuencia de muestreo
-    TIM5->ARR = 200-1; //ARR, Para tener 5KHz, que es x10 la frecuencia de muestreo
+    TIM5->PSC = 32-1;  // Para tener 5KHz, que es x10 la frecuencia de muestreo
+    TIM5->ARR = 100-1; //ARR, Para tener 5KHz, que es x10 la frecuencia de muestreo
     TIM5->DIER |= 0x1; //Habilita Interrupcion
     TIM5->EGR |= 0x1; //Reinicio del conteo
 	TIM5->CCMR1|=0X6060; //Modo PWM Tim5  CH1 y 2 - Como salida 00 en CC1S
@@ -91,7 +102,8 @@ void TIM_Config(){
 	NVIC_EnableIRQ(TIM5_IRQn); //Por si queremos la interrupci?n que igual trabaja con el ARR
 }
 
-void ADC_SETUP(){
+void ADC_SETUP(){   
+    ADC->CCR|=(2<<16); 
     ADC1->CR2 |= 0x3; // Activa el Conversor A/D y la conversion continua
     ADC1->CR1 |=  (0<<24); //12bit de resolicion
     ADC1->SMPR1|=(1<<0); // como el PC0 tiene el ADC1 en el canal 10 se configura en este, se ponen 15 ciclos que es lo que se necesita cuando se usa resolucion de 12 bits.
@@ -110,9 +122,14 @@ void USART_SETUP(){
 extern "C"{
     void TIM4_IRQHandler(void){
         TIM4->SR &=~(1UL<<0);
-        //GPIOB->ODR^=(1<<7); //Blink el Led usuario
+        GPIOB->ODR^=(1<<7); //Blink el Led usuario
         DAC->DHR12R2 = adc;
+        TIM5->CCR1 = (int)adc_mapped;
         send = 1;
 
+    }
+    void TIM5_IRQHandler(void){
+        TIM5->SR &=~(1UL<<0);
+        //GPIOB->ODR^=(1<<7);   
     }
 }
