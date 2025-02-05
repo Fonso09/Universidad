@@ -32,8 +32,8 @@ int main(){
 //          while((ADC1->SR & (1<<1)) == 0){ADC1->SR = 0;} 
 //          adc = ADC1->DR;
             send = 0;
-            //sprintf(tx_txt, "%d\n", adc);
-            //Serial_buffer(tx_txt);
+            sprintf(tx_txt, "%d\n", adc);
+            Serial_buffer(tx_txt);
 
 			//DAC->DHR12R2 = salida;
 
@@ -84,8 +84,8 @@ void GPIO_SETUP(){
 
 }
 void TIM_Config(){
-    TIM4->PSC = 16-1;  // Para tener 10KHz
-    TIM4->ARR = 100-1; //ARR Para tener 10KHz
+    TIM4->PSC = 16-1;  // Para tener 500Hz
+    TIM4->ARR = 100-1; //ARR Para tener 500Hz
     TIM4->DIER |= 0x1; //Habilita Interrupcion
     TIM4->EGR |= 0x1; //Reinicio del conteo
     TIM4->CR1|=0X1; //Habilitar conteo
@@ -123,7 +123,7 @@ extern "C"{
     void TIM4_IRQHandler(void){
         TIM4->SR &=~(1UL<<0);
         GPIOB->ODR^=(1<<7); //Blink el Led usuario
-        DAC->DHR12R2 = adc;
+        DAC->DHR12R2 = adc;// PA5 para salida de DAC
         TIM5->CCR1 = (int)adc_mapped; //PA0
         send = 1;
 

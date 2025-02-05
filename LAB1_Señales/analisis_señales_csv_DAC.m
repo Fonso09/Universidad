@@ -1,0 +1,132 @@
+close all;   % Cierra todas las figuras abiertas
+
+% Ruta del archivo CSV generado en Python
+archivo = "C:\Users\Acer\Desktop\LAB1_Señales\LAB1_Señales\datos_osc_matlab.csv";
+
+% Cargar los datos desde el archivo CSV
+datos = readtable(archivo);
+
+% Extraer variables
+t = datos.Tiempo;         % Tiempo en segundos
+V_ch1 = datos.Voltaje_CH1; % Voltaje del canal 1
+V_ch2 = datos.Voltaje_CH2; % Voltaje del canal 2
+
+% Calcular el intervalo de muestreo (suponiendo que los datos están uniformemente espaciados)
+Ts = mean(diff(t)); % Período de muestreo
+Fs = 1 / Ts;        % Frecuencia de muestreo
+
+% Aplicar FFT a ambos canales
+N = length(V_ch1);  % Número de puntos
+f = linspace(0, Fs/2, N/2); % Eje de frecuencias hasta Nyquist
+
+% FFT del canal 1
+Y_ch1 = fft(V_ch1);
+Y_ch1 = abs(Y_ch1(1:N/2)); % Solo tomamos la mitad positiva
+
+% FFT del canal 2
+Y_ch2 = fft(V_ch2);
+Y_ch2 = abs(Y_ch2(1:N/2));
+
+% --- FILTRO PASA BAJAS (500 Hz) ---
+fc = 212;  % Frecuencia de corte en Hz
+orden = 6; % Orden del filtro
+
+% Diseño del filtro Butterworth
+[b, a] = butter(orden, fc / (Fs / 2), 'low');
+
+% Aplicar el filtro a la señal del canal 1
+V_ch1_filtrado = filtfilt(b, a, V_ch1);
+
+% Graficar señales en el dominio del tiempo
+figure;
+subplot(2,1,1);
+plot(t, V_ch1, 'b', 'LineWidth', 1.5); hold on;
+plot(t, V_ch2, 'r', 'LineWidth', 1.5);
+xlabel('Tiempo (s)');
+ylabel('Voltaje (V)');
+title('Señales en el dominio del tiempo');
+legend('Canal 1', 'Canal 2');
+grid on;
+
+% --- NUEVAS FIGURAS CON SEÑAL FILTRADA ---
+% Comparación señal original vs. filtrada
+figure;
+plot(t, V_ch1, 'b', 'LineWidth', 1.2); hold on;
+plot(t, V_ch1_filtrado, 'r', 'LineWidth', 1.2);
+xlabel('Tiempo (s)');
+ylabel('Voltaje (V)');
+title('Señal original vs. Filtrada - Canal 1');
+legend('Original', 'Filtrada');
+grid on;
+
+% Comparación señal filtrada vs. Canal 2
+figure;
+plot(t, V_ch2, 'g', 'LineWidth', 1.2); hold on;
+plot(t, V_ch1_filtrado, 'r', 'LineWidth', 1.2);
+xlabel('Tiempo (s)');
+ylabel('Voltaje (V)');
+title('Canal 2 vs. Canal 1 Filtrado');
+legend('Canal 2', 'Canal 1 Filtrado');
+grid on;
+
+
+
+% % Obtener número de puntos N
+% N = length(V_ch1);
+% 
+% % FFT de la señal
+% tfV_ch1 = fft(V_ch2);
+% magV_ch1 = abs(tfV_ch1);
+% phaseV_ch1 = angle(tfV_ch1);
+% realeV_ch1 = real(tfV_ch1);
+% imageV_ch1 = imag(tfV_ch1);
+% 
+% % Ajustar tamaño para graficar correctamente
+% M = floor(N/2); % Solo la mitad de los datos si N es impar
+% 
+% % Ajuste en frecuencia
+% AjusmagV_ch1 = 20*log10(magV_ch1([M+1:N 1:M]));
+% AjusangleV_ch1 = phaseV_ch1([M+1:N 1:M]);
+% AjusrealV_ch1 = 20*log10(abs(realeV_ch1([M+1:N 1:M]))); % Asegurar valores positivos en log
+% AjusimageV_ch1 = 20*log10(abs(imageV_ch1([M+1:N 1:M])));
+% 
+% % Vector de frecuencias corregido
+% w = linspace(-pi*Fs, pi*Fs, N);
+% 
+% % Graficar
+% figure;
+% subplot(2,2,1);
+% plot(w, AjusmagV_ch1); hold on;
+% stem(w, AjusmagV_ch1, '.r');
+% grid on;
+% title('MAG(DAC)');
+% xlabel('w (rad/s)');
+% ylabel('dB');
+% xlim([-pi*Fs pi*Fs]);
+% 
+% subplot(2,2,2);
+% plot(w, AjusangleV_ch1); hold on;
+% stem(w, AjusangleV_ch1, '.r');
+% grid on;
+% title('Phi(DAC)');
+% xlabel('w (rad/s)');
+% ylabel('rad');
+% xlim([-pi*Fs pi*Fs]);
+% 
+% subplot(2,2,3);
+% plot(w, AjusrealV_ch1); hold on;
+% stem(w, AjusrealV_ch1, '.r');
+% grid on;
+% title('REAL(DAC)');
+% xlabel('w (rad/s)');
+% ylabel('dB');
+% xlim([-pi*Fs pi*Fs]);
+% 
+% subplot(2,2,4);
+% plot(w, AjusimageV_ch1); hold on;
+% stem(w, AjusimageV_ch1, '.r');
+% grid on;
+% title('IMAG(DAC)');
+% xlabel('w (rad/s)');
+% ylabel('dB');
+% xlim([-pi*Fs pi*Fs]);

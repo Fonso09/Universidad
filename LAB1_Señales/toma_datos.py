@@ -7,11 +7,11 @@ import pandas as pd
 import time
 
 # Configurar puerto serial
-ser = serial.Serial('COM13', 115200, timeout=1)
+ser = serial.Serial('COM15', 115200, timeout=1)
 
 # Tamaño del buffer
 buffer_size = 6000  # Almacenamos hasta 6000 datos
-display_size = 1000  # Solo mostramos los últimos 1000
+display_size = 100 # Solo mostramos los últimos 1000
 
 # Buffers para almacenar datos
 data_buffer = collections.deque([0] * buffer_size, maxlen=buffer_size)

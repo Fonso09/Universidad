@@ -1,0 +1,1 @@
+La carpeta llamada "Datos osciloscopio DAC para Leer por Python" en cada una de las tomas caputaradas del osciloscopio se encuentra un código de python que creará un csv; por lo que, es necesario configurar los paths de origen y destino del codigo de Python y también configurar los paths del código "analisis_señales_csv_DAC.m" puesto que leerá el csv de los codigo de python. 
