@@ -26,6 +26,7 @@ def read_serial():
             if line:
                 with lock:
                     data_buffer.append(int(line))
+                    print(line)
         except ValueError:
             pass
 
@@ -72,10 +73,10 @@ root = tk.Tk()
 root.title("Control Serial")
 
 buttons = {
-    "I2C": "A",
-    "SPI": "B",
-    "BT": "C",
-    "Serial": "D"
+    "I2C": "1\n",
+    "SPI": "2\n",
+    "BT": "3\n",
+    "Serial": "4\n"
 }
 
 for text, cmd in buttons.items():
