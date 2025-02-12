@@ -10,7 +10,7 @@
 #define ADC_PIN 2
 
 String modo_comunicacion = "";
-int ADC_value =0;
+//int ADC_value =0;
 bool req_enviar_RS485 = false; 
 uint16_t received_adc_value = 0;  // Último valor recibido del maestro
 uint16_t adc_value = 0;
