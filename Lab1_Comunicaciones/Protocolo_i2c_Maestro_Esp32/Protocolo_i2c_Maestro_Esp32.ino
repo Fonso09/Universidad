@@ -1,30 +1,31 @@
 #include "Wire.h"
 
 #define I2C_DEV_ADDR 0x55
-
-uint32_t i = 0;
+#define ADC_PIN 2 // Pin del ADC en el maestro
 
 void setup() {
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
   Wire.begin();
 }
 
 void loop() {
-  delay(5000);
+  delay(10);
 
-  //Write message to the slave
+  // Leer ADC del maestro
+  uint16_t adc_value = analogRead(ADC_PIN);
+  //Serial.printf("ADC maestro: %u\n", adc_value);
+
+  // Enviar el ADC al esclavo
   Wire.beginTransmission(I2C_DEV_ADDR);
-  Wire.printf("Hello World! %lu", i++);
+  Wire.write((uint8_t*)&adc_value, sizeof(adc_value));
   uint8_t error = Wire.endTransmission(true);
-  Serial.printf("endTransmission: %u\n", error);
+  //Serial.printf("endTransmission: %u\n", error);
 
-  //Read 16 bytes from the slave
-  uint8_t bytesReceived = Wire.requestFrom(I2C_DEV_ADDR, 16);
-  Serial.printf("requestFrom: %u\n", bytesReceived);
-  if ((bool)bytesReceived) {  //If received more than zero bytes
-    uint8_t temp[bytesReceived];
-    Wire.readBytes(temp, bytesReceived);
-    log_print_buf(temp, bytesReceived);
+  // Solicitar la lectura del ADC del esclavo
+  uint8_t bytesReceived = Wire.requestFrom(I2C_DEV_ADDR, sizeof(adc_value));
+  if (bytesReceived == sizeof(adc_value)) {
+    uint16_t slave_adc_value;
+    Wire.readBytes((uint8_t*)&slave_adc_value, sizeof(slave_adc_value));
+    Serial.printf("Valor recibido del esclavo: %u\n", slave_adc_value);
   }
 }

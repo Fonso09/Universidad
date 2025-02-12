@@ -1,35 +1,33 @@
 #include "Wire.h"
 
 #define I2C_DEV_ADDR 0x55
+#define ADC_PIN 2  // Pin del ADC en el esclavo
 
-uint32_t i = 0;
+uint16_t received_adc_value = 0;  // Último valor recibido del maestro
 
 void onRequest() {
-  Wire.print(i++);
-  Wire.print(" Packets.");
-  Serial.println("onRequest");
+  // Leer el ADC del esclavo
+  uint16_t adc_value = analogRead(ADC_PIN);
+  
+  // Enviar la lectura al maestro
+  Wire.write((uint8_t*)&adc_value, sizeof(adc_value));
+  //Serial.printf("Enviando ADC esclavo: %u\n", adc_value);
 }
 
 void onReceive(int len) {
-  Serial.printf("onReceive[%d]: ", len);
-  while (Wire.available()) {
-    Serial.write(Wire.read());
+  if (len >= sizeof(received_adc_value)) {
+    Wire.readBytes((uint8_t*)&received_adc_value, sizeof(received_adc_value));
+    Serial.printf("Dato recibido del maestro: %u\n", received_adc_value);
   }
-  Serial.println();
 }
 
 void setup() {
   Serial.begin(115200);
-  Serial.setDebugOutput(true);
   Wire.onReceive(onReceive);
   Wire.onRequest(onRequest);
   Wire.begin((uint8_t)I2C_DEV_ADDR);
-
-#if CONFIG_IDF_TARGET_ESP32
-  char message[64];
-  snprintf(message, 64, "%lu Packets.", i++);
-  Wire.slaveWrite((uint8_t *)message, strlen(message));
-#endif
 }
 
-void loop() {}
+void loop() {
+  delay(100);
+}

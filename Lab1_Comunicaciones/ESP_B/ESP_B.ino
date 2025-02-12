@@ -1,4 +1,7 @@
+//ESP B se dedicará exclusivamente a enviar los datos 
 #include <HardwareSerial.h>
+#include "Wire.h"
+#define I2C_DEV_ADDR 0x55
 #define TX_PIN 17
 #define RX_PIN 16
 #define DE_RE_1 23
@@ -9,20 +12,36 @@
 String modo_comunicacion = "";
 int ADC_value =0;
 bool req_enviar_RS485 = false; 
-
+uint16_t received_adc_value = 0;  // Último valor recibido del maestro
+uint16_t adc_value = 0;
+void onRequest() {
+  // Leer el ADC del esclavo
+  adc_value = analogRead(ADC_PIN);
+  
+  // Enviar la lectura al maestro
+  Wire.write((uint8_t*)&adc_value, sizeof(adc_value));
+  //Serial.printf("Enviando ADC esclavo: %u\n", adc_value);
+}
+void onReceive(int len) {
+  if (len >= sizeof(received_adc_value)) {
+    Wire.readBytes((uint8_t*)&received_adc_value, sizeof(received_adc_value));
+    //Serial.printf("Dato recibido del maestro: %u\n", received_adc_value);
+  }
+}
 HardwareSerial RS485(1);
 String leer_RS485();
-void enviar_RS485(int dato_ADC);
+void enviar_RS485(String dato_ADC);
 
 
 void setup() {
   Serial.begin(115200); //Inicializar Serial con el PC
+  Wire.onReceive(onReceive);
+  Wire.onRequest(onRequest);
+  Wire.begin((uint8_t)I2C_DEV_ADDR);
   RS485.begin(115200, SERIAL_8N1, RX_PIN, TX_PIN); //Inicializar RS485
   pinMode(DE_RE_1, OUTPUT); //Pin para poner RS485 como lectura o escritura
-  pinMode(DE_RE_2, OUTPUT); // pin para mandar a la otra esp con el rs485
   pinMode(ADC_PIN, INPUT); //Pin que lee el sensor para enviar a la otra ESP
-  pinMode(DE_RE_BTN, INPUT); //Flag que manda la otra esp para que le envíen por RS485
-  digitalWrite(DE_RE_1, LOW); // Inicializa el RS485 como modo lectura 
+  digitalWrite(DE_RE_1, HIGH); // Inicializa el RS485 como modo lectura 
   
 
 }
@@ -33,16 +52,7 @@ void loop() {
   */
   ADC_value = analogRead(ADC_PIN);
   //Serial.println(ADC_value);
-
-  //si el RS485 de la otra esp pide que envie aquí se leera y enviará 
-  req_enviar_RS485 = digitalRead(DE_RE_BTN);
-  if(req_enviar_RS485){
-    digitalWrite(DE_RE_1, HIGH); // cambia a modo transmisión
-    enviar_RS485(ADC_value);
-  } else if (!req_enviar_RS485){
-    digitalWrite(DE_RE_1, LOW); // cambia a modo recepción
-  }
-
+  enviar_RS485(String (ADC_value));
   //Parte del código para enviar al python los datos recibidos
   if (Serial.available()>0) {
     modo_comunicacion = Serial.readStringUntil('\n');
@@ -51,6 +61,7 @@ void loop() {
   switch(modo_comunicacion.toInt()){
     case 1:
       //I2C
+      Serial.printf("Dato recibido del maestro: %u\n", received_adc_value);
       break;
     case 2:
       //SPI
@@ -60,35 +71,19 @@ void loop() {
       break;
     case 4:
       //SERIAL
-      digitalWrite(DE_RE_2, HIGH); //Decirle a la otra ESP que te empiece a mandar por el RS485 los datos de su sensor
-      digitalWrite(DE_RE_1, LOW); // Inicializa el RS485 de esta ESP32 como Lectura
-      delay(100);
-      if (RS485.available()) {
-        String adcValue = leer_RS485();
-        Serial.println(adcValue.toInt());
-      }
-      break;    
+      break;
     }
+
 }
 
-void enviar_RS485(int dato_ADC){
+void enviar_RS485(String dato_ADC){
     digitalWrite(DE_RE_1, HIGH);  // Cambiar a modo transmisión
-    digitalWrite(DE_RE_2, LOW); //poner el DE_RE de la otra ESP como lectura
     delay(10);
     RS485.println(dato_ADC);
     Serial.println("Dato RS485 enviado");
     delay(10);
     //digitalWrite(DE_RE, LOW);   // Volver a modo recepción
 }
-String leer_RS485(){
-    String msg = "";
-    while (RS485.available()) {
-        char c = RS485.read();
-        if (c >= 32 || c == '\n') {  // Filtra caracteres basura
-            msg += c;
-        }
-    }
-    return msg; 
-}
+
   
 
