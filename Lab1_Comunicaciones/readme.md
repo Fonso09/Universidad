@@ -1,0 +1,1 @@
+En el lab los entregables son la interfaz de python la cual hay que cambiar el puerto serial en la que se conecte el embebido. Maestro entregado y esclavo entregado. SPI y Bt son bidireccionales y I2C solo lee Esclavo y escribe maestro y RS485 lee maestro y envia esclavo. Para i2C Bidireccional ver esp A y Esp B
