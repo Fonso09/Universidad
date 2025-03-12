@@ -19,10 +19,12 @@ int main(){
         if(detector==(1<<13)){ 
             voltaje_rpm = map(frecuencia,0,510,0,4095);
             DAC->DHR12R2 = voltaje_rpm;// PA5 para salida de DAC
+            GPIOB->ODR |= (1<<0);
         } else{
             frecuencia =0;
             voltaje_rpm = map(frecuencia,0,510,0,4095);
             DAC->DHR12R2 = voltaje_rpm;// PA5 para salida de DAC
+            GPIOB->ODR &= ~0xFFFF;
         
         }
     }
@@ -38,6 +40,7 @@ void GPIO_SETUP(){
     GPIOA->MODER |= 0xC00; //DAC PA5 canal 2 
     GPIOA->AFR[0] |= (1<<0); // AF1 para PA0 para TIM2 Channel 1
     GPIOB->MODER |= (1<<14);// LED de prueba PB7
+    GPIOB->MODER |= (1<<0);// LED de prueba PB0
     GPIOF->MODER |= (0<<26); //PF13 para entrada cuando detecta 3.3v entonces lea la frecuencia del motor
     GPIOF->PUPDR |= (2<<26); //pull down PF13
 }
