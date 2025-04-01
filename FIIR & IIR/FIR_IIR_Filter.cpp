@@ -288,7 +288,7 @@ int main(){
         //ADC1->CR2 |= (1<<30); // INICIO CONVERSION
         //while((ADC1->SR & (1<<1)) == 0){ADC1->SR = 0;} 
         //adc = ADC1->DR;
-        adc_mapped = map(adc,0,4096,0,100);
+        adc_mapped = map((int)filtered_BP_signal+2047,0,4096,0,100);
 
         if(send == 1){
             //ADC1->CR2 |= (1<<30); // INICIO CONVERSION
@@ -484,11 +484,11 @@ extern "C"{
         //float32_t adc_32 = (float32_t)adc;
         //filtered_signal = LowPass_Filter(adc);
         //filtered_HP_signal = HighPass_Filter(adc);
-        //filtered_BP_signal = BandPass_Filter(adc);
+        filtered_BP_signal = BandPass_Filter(adc);
 
         //iir_filtered_signal = LowPass_Filter_IIR(adc);
         //iir_filtered_HP_signal = HighPass_Filter_IIR(adc);
-        iir_filtered_BP_signal = BandPass_Filter_IIR(adc);
+        //iir_filtered_BP_signal = BandPass_Filter_IIR(adc);
 
         //DAC->DHR12R2 = (int)filtered_signal;
         //DAC->DHR12R2 = (int)filtered_HP_signal + 2047;
@@ -496,7 +496,7 @@ extern "C"{
 
         //DAC->DHR12R2 = (int)iir_filtered_signal;
         //DAC->DHR12R2 = (int)iir_filtered_HP_signal + 2047;
-        DAC->DHR12R2 = (int)iir_filtered_BP_signal + 2047;
+        DAC->DHR12R2 = (int)filtered_BP_signal + 2047;
         TIM5->CCR1 = (int)adc_mapped; //PA0
         send = 1;
 
