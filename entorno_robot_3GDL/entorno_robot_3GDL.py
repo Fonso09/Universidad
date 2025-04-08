@@ -7,11 +7,12 @@ import tkinter as tk
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 
 # Configura aquí tu puerto
-puerto_serie = serial.Serial('COM13', 9600, timeout=1)
+puerto_serie = serial.Serial('COM14', 115200, timeout=1)
 
 # Variables compartidas
 x_target, y_target, z_target = 0, 0, 0
 cerrar_programa = False
+prevx, prevy, prevz = 0, 0, 0
 
 # Longitudes del robot
 l1 = 1
@@ -75,7 +76,7 @@ def actualizar_robot():
     root.after(100, actualizar_robot)  # Repite cada 100 ms
 
 def leer_serial():
-    global x_target, y_target, z_target
+    global x_target, y_target, z_target, prevx, prevy, prevz 
     while not cerrar_programa:
         try:
             linea = puerto_serie.readline().decode('utf-8').strip()
@@ -83,9 +84,12 @@ def leer_serial():
                 partes = linea.split(',')
                 if len(partes) == 3:
                     x, y, z = map(float, partes)
-                    x_target = x * 0.01  # Ajusta escala si quieres
-                    y_target = y * 0.01
-                    z_target = z * 0.01
+                    x_target = prevx + (x)/(2)  # Ajusta escala si quieres
+                    y_target = prevy + (y)/(2)
+                    z_target = prevz + (z)/(2)
+                    prevx= x_target
+                    prevy= y_target
+                    prevz= z_target
         except Exception as e:
             print("Error leyendo puerto:", e)
 
