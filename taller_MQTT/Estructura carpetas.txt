@@ -1,0 +1,6 @@
+Taller_MQTT
+    docker_compose.yml
+    mysql/
+        init.sql
+    config/
+        mosquitto.conf

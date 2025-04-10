@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: mqtt_data
+      MYSQL_USER: fonso
+      MYSQL_PASSWORD: fonso1
+    ports: 
+      - "3306:3306"
+    volumes:
+      - ./mysql/init.sql:/docker-entrypoint-initdb.d/init.sql
+  
+  broker:
+    image: eclipse-mosquitto
+    container_name: broker
+    ports:
+      - "1883:1883"
+    networks:
+      - mosquitto-net
+    volumes:
+      - ./config:/mosquitto/config
+    restart: always
+
+  sub1:
+    image: eclipse-mosquitto
+    container_name: sub1
+    command: mosquitto_sub -h broker -t test/topic
+    networks:
+      - mosquitto-net
+    depends_on:
+      - broker
+
+  sub2:
+    image: eclipse-mosquitto
+    container_name: sub2
+    command: mosquitto_sub -h broker -t test/topic
+    networks:
+      - mosquitto-net
+    depends_on:
+      - broker
+
+  sub3:
+    image: eclipse-mosquitto
+    container_name: sub3
+    command: mosquitto_sub -h broker -t test/topic
+    networks:
+      - mosquitto-net
+    depends_on:
+      - broker
+
+networks:
+  mosquitto-net:
+    driver: bridge
+    
+      
