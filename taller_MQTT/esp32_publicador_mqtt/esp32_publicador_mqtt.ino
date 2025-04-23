@@ -2,11 +2,11 @@
 #include <PubSubClient.h>
 
 // Configura tu WiFi
-const char* ssid = "nombre red";
-const char* password = "contraseña red";
+const char* ssid = "Majito";
+const char* password = "kkqs6886";
 
 
-const char* mqtt_server = "192.168.1.14"; //solamente se pone la ip del dispositivo de la comunicación, luego se coloca el puerto del MQTT
+const char* mqtt_server = "192.168.33.186"; //solamente se pone la ip del dispositivo de la comunicación, luego se coloca el puerto del MQTT
 
 WiFiClient espClient;
 PubSubClient client(espClient);
