@@ -17,10 +17,10 @@ TOPIC_OBJ = "encyclopedia/obj"
 
 # Estado del carro
 car = {
-    "x": 500,
-    "y": 500,
+    "x": 1100,
+    "y": 1700,
     "angle": 0,
-    "velocity": 2,
+    "velocity": 0.5,
     "last_cmd": "ST",  # Puede ser: AD, IZ, DR, ST, o W/A/S/D
     "last_obj_time": 0,
     "scanning": False,
