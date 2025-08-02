@@ -1,0 +1,8 @@
+syms F x theta xp thetap p
+k1 = 100;
+k2 = 150;
+b1 = 20;
+b2 = 30;
+m1 = 2;
+m2 = 1;
+xpp = (F -xp*())
