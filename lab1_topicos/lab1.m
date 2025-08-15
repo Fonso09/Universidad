@@ -143,7 +143,7 @@ disp(simplify(Astar_fco));
 char_poly_fco = simplify(det(s*eye(5) - Astar_fco));
 disp('Polinomio característico de A* (FCO):');
 pretty(vpa(char_poly_fco,4))
-%Asignacion de polos
+%%Asignacion de polos controlador <3
 % Polinomio deseado
 pd = [1 25.58 231.4 848.6 1066.8 666.2];
 
@@ -161,16 +161,17 @@ pd = [1 25.58 231.4 848.6 1066.8 666.2];
 
 % Mostrar soluciones
 %disp('Solución de ganancias K:');
-%disp(sol.k1s)
-%disp(sol.k2s)
-%disp(sol.k3s)
-%disp(sol.k4s)
-%disp(sol.kis)
+%disp(char(vpa(sol.k1s,8)));
+%disp(char(vpa(sol.k2s,8)));
+%disp(char(vpa(sol.k3s,8)));
+%disp(char(vpa(sol.k4s,8)));
+%disp(char(vpa(sol.kis,8)));
 
-% Polinomio característico de A*_FCC
+
+ %Polinomio característico de A*_FCC
 %char_poly_fcc = simplify(det(s*eye(5) - Astar_fcc));
 
-% Extraer los coeficientes del polinomio de A*_FCC (en función de las Ks)
+%Extraer los coeficientes del polinomio de A*_FCC (en función de las Ks)
 %coeffs_astar_fcc = coeffs(char_poly_fcc, s, 'All');
 
 % Igualar con el polinomio deseado
@@ -208,22 +209,106 @@ pd = [1 25.58 231.4 848.6 1066.8 666.2];
 %disp(['k4 = ', char(vpa(sol_fco.k4s, 8))]);
 %disp(['ki = ', char(vpa(sol_fco.kis, 8))]);
 
-%ASIGNACION DE POLOS
+%ASIGNACION DE POLOS coeficientes <3
 
-KA = [-46190/327, 28467610/962361, -3048419/32700, 2598423281/48118050];
-kiA = 66620/981;
+KA = [-15.3759, -7.2896182, -45.976447, -15.168131];
+kiA = -151.09413;
 
-KAfcc=[-22691668,516984.21, -10797.714,-24.42];
-kiAfcc=[67.910289];
+KAfcc=[-29798.327,25528.529, 7395.9961,14.998605];
+kiAfcc=[-151.09413];
 
-KAfco=[2.7523163,-1216.321,596316.56,-292154900.0 ];
-kiAfco=[67.910296]
+KAfco=[-3.2913256, 1568.6046, -768661.08, 376589940.0 ];
+kiAfco=[-151.09413];
 
-%AKERMAN
+%% AKERMAN controlador
+% --- Ackermann para el sistema original ---
+%A_aug   = [A  zeros(size(A,1),1);
+      %     -C  0];
+%B_aug   = [B; 0];
 
+%K_aug   = acker(A_aug, B_aug, roots(pd));  % polos deseados
+%K_orig  = K_aug(1:end-1);   % Ganancias K
+%Ki_orig = K_aug(end);       % Ganancia integrador
 
+%disp('Ganancias Ackermann ORIGINAL:');
+%disp(['K = ', mat2str(K_orig)]);
+%disp(['Ki = ', num2str(Ki_orig)]);
+%K = [-15.3758998555664 -7.28961816703932 -45.9764472183123 -15.1681306550474]
+%Ki = 151.094
+% --- Ackermann para FCC ---
+%A_aug_fcc = [Afcc zeros(size(Afcc,1),1);
+    %         -Cfcc 0];
+%B_aug_fcc = [Bfcc; 0];
 
+%K_aug_fcc   = acker(A_aug_fcc, B_aug_fcc, roots(pd));
+%K_fcc  = K_aug_fcc(1:end-1);
+%Ki_fcc = K_aug_fcc(end);
 
+%disp('Ganancias Ackermann FCC:');
+%disp(['K = ', mat2str(K_fcc)]);
+%disp(['Ki = ', num2str(Ki_fcc)]);
+%K = [-29798.3273914829 25528.5293685904 7395.99613370006 14.9986046546032]
+%Ki = 151.0941
+% --- Ackermann para FCO ---
+%A_aug_fco = [Afco zeros(size(Afco,1),1);
+         %    -Cfco 0];
+%B_aug_fco = [Bfco; 0];
+
+%K_aug_fco   = acker(A_aug_fco, B_aug_fco, roots(pd));
+%K_fco  = K_aug_fco(1:end-1);
+%Ki_fco = K_aug_fco(end);
+
+%disp('Ganancias Ackermann FCO:');
+%disp(['K = ', mat2str(K_fco)]);
+%disp(['Ki = ', num2str(Ki_fco)]);
+
+%K = [-3.29132557867465 1568.60457325579 -768661.081849771 376589937.61287]
+%Ki = 151.0941
+
+%% Matriz de transformacion <3
+%[K_orig, Ki_orig] = obtenerK_normal_por_ackermann(A, B, C, pd);
+
+%disp('Ganancias Matriz de Transformación ORIGINAL:');
+%disp(['K  = ', mat2str(K_orig, 16)]);
+%disp(['Ki = ', num2str(Ki_orig, '%.6f')]);
+
+% --- FCC ---
+%K_fcc     = K_orig * T;   % Transformación desde ORIGINAL a FCC
+%Ki_fcc    = Ki_orig;      % Integrador no cambia
+
+%disp('Ganancias Matriz de Transformación FCC:');
+%disp(['K  = ', mat2str(K_fcc, 16)]);
+%disp(['Ki = ', num2str(Ki_fcc, '%.6f')]);
+
+% --- FCO ---
+%K_fco     = K_orig * Q;   % Transformación desde ORIGINAL a FCO
+%Ki_fco    = Ki_orig;      % Integrador no cambia
+
+%disp('Ganancias Matriz de Transformación FCO:');
+%disp(['K  = ', mat2str(K_fco, 16)]);
+%disp(['Ki = ', num2str(Ki_fco, '%.6f')]);
+
+%function [K_normal, ki] = obtenerK_normal_por_ackermann(A,B,C,pd)
+    % Sistema aumentado para integrar el error de salida
+   % A_aug = [A, zeros(size(A,1),1);
+    %         -C, 0];
+   % B_aug = [B; 0];
+
+    % Polos deseados (vector -> raíces)
+    %polos = roots(pd);
+
+    % Ganancias [K ki] con Ackermann en forma original
+    %K_aug = acker(A_aug, B_aug, polos);
+    %K_normal = K_aug(1:end-1);
+    %ki       = K_aug(end);
+%end
+
+%K (REAL)    = [-15.37589985556644 -7.289618167039325 -45.97644721831225 -15.16813065504742]
+%ki (REAL)   = 151.094126
+%K (FCC)     = [-29798.32328534414 25528.52938668917 7395.996131979894 14.99860465116279]
+%ki (FCC)    = 151.094126
+%K (FCO)     = [-3.291325577455521 1568.604573134805 -768661.0815075631 376589937.6157691]
+%ki (FCO)    = 151.094126
 
 % se hace un polinomio deseado nuevo debido a que el tiempo de
 % establecimiento debe ser más corto:
