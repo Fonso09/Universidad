@@ -1,0 +1,312 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- This URDF was automatically created by SolidWorks to URDF Exporter! Originally created by Stephen Brawner (brawner@gmail.com) 
+     Commit Version: 1.6.0-4-g7f85cfe  Build Version: 1.6.7995.38578
+     For more information, please see http://wiki.ros.org/sw_urdf_exporter -->
+<robot
+  name="URDF_ROBOT5GDL">
+  <link
+    name="base">
+    <inertial>
+      <origin
+        xyz="-0.11962770585968 0.0224259173577204 0.0650534160948688"
+        rpy="0 0 0" />
+      <mass
+        value="0.093991528357274" />
+      <inertia
+        ixx="0.000114117515271886"
+        ixy="-1.35284011841919E-06"
+        ixz="2.13737987932819E-08"
+        iyy="0.00019776858898422"
+        iyz="2.80449571670601E-09"
+        izz="0.000124427213646739" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/base.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/base.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <link
+    name="J0">
+    <inertial>
+      <origin
+        xyz="0.00705756789604024 -1.03814220123177E-07 -0.0194229347811683"
+        rpy="0 0 0" />
+      <mass
+        value="0.0897213187915349" />
+      <inertia
+        ixx="7.72728720700329E-05"
+        ixy="2.77140507338326E-10"
+        ixz="7.96790903926998E-06"
+        iyy="6.69370927398848E-05"
+        iyz="-6.66096666573266E-11"
+        izz="7.06954475493989E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J0.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J0.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J0"
+    type="continuous">
+    <origin
+      xyz="-0.120517011434494 -0.0650552599410059 0.0499999999999998"
+      rpy="-3.14159265358979 0 1.47987282587312" />
+    <parent
+      link="base" />
+    <child
+      link="J0" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="J1">
+    <inertial>
+      <origin
+        xyz="-0.0700000105763837 -0.00781836198678804 -3.59229752472379E-08"
+        rpy="0 0 0" />
+      <mass
+        value="0.13818908775593" />
+      <inertia
+        ixx="3.08451208820533E-05"
+        ixy="-3.88973669767347E-12"
+        ixz="-1.00959227812006E-10"
+        iyy="0.000431781048974166"
+        iyz="2.03392242386139E-11"
+        izz="0.000413033559935478" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J1.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J1.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J1"
+    type="continuous">
+    <origin
+      xyz="0 0 -0.0435499999999992"
+      rpy="-3.14159265358979 -1.55987158755512 1.57079632679537" />
+    <parent
+      link="J0" />
+    <child
+      link="J1" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="J2">
+    <inertial>
+      <origin
+        xyz="0.000100524690572146 -0.0130785542880969 0.0316987674607788"
+        rpy="0 0 0" />
+      <mass
+        value="0.0803344691186284" />
+      <inertia
+        ixx="0.000104520108783472"
+        ixy="1.04782110853391E-08"
+        ixz="-2.54229822619457E-07"
+        iyy="0.00011722659357718"
+        iyz="8.1701788336201E-07"
+        izz="2.12574578367453E-05" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J2.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J2.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J2"
+    type="continuous">
+    <origin
+      xyz="-0.140000000000001 0 0"
+      rpy="0 -0.0206204308986285 3.14159265358979" />
+    <parent
+      link="J1" />
+    <child
+      link="J2" />
+    <axis
+      xyz="0 1 0" />
+  </joint>
+  <link
+    name="J3">
+    <inertial>
+      <origin
+        xyz="0.000564329020180998 0.00394900802042061 0.0224034593597551"
+        rpy="0 0 0" />
+      <mass
+        value="0.0204480610002332" />
+      <inertia
+        ixx="5.09531086038014E-06"
+        ixy="-2.9748855419056E-09"
+        ixz="-1.13770387817142E-08"
+        iyy="6.07399569864947E-06"
+        iyz="-3.91777865594178E-07"
+        izz="2.9611806707879E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J3.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J3.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J3"
+    type="continuous">
+    <origin
+      xyz="-0.00509999999999963 -0.0143499999999989 0.100546975009718"
+      rpy="0 0 0.11285395074636" />
+    <parent
+      link="J2" />
+    <child
+      link="J3" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+  <link
+    name="J4">
+    <inertial>
+      <origin
+        xyz="0.024485 0.0047925 0.013092"
+        rpy="0 0 0" />
+      <mass
+        value="0.015576" />
+      <inertia
+        ixx="2.5841E-06"
+        ixy="-8.3085E-07"
+        ixz="5.4613E-07"
+        iyy="6.2478E-06"
+        iyz="1.0034E-08"
+        izz="4.8787E-06" />
+    </inertial>
+    <visual>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J4.STL" />
+      </geometry>
+      <material
+        name="">
+        <color
+          rgba="1 1 1 1" />
+      </material>
+    </visual>
+    <collision>
+      <origin
+        xyz="0 0 0"
+        rpy="0 0 0" />
+      <geometry>
+        <mesh
+          filename="package://URDF_ROBOT5GDL/meshes/J4.STL" />
+      </geometry>
+    </collision>
+  </link>
+  <joint
+    name="J4"
+    type="continuous">
+    <origin
+      xyz="0.00060263 0 0.032353"
+      rpy="1.5708 -1.5489 -3.1416" />
+    <parent
+      link="J3" />
+    <child
+      link="J4" />
+    <axis
+      xyz="0 0 1" />
+  </joint>
+</robot>
