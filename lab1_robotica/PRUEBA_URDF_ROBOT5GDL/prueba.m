@@ -1,12 +1,15 @@
 function robot_5dof_gui()
-    % Robot 5DOF GUI - Visualizador interactivo con URDF y cálculos DH
-    % Combina visualización URDF con cálculos manuales de MTH
+    % Robot 5DOF GUI - Visualizador interactivo con URDF, cálculos DH y comunicación serial
+    % Combina visualización URDF con cálculos manuales de MTH y envío por puerto serie
     
     % Variables globales
     global robot fig_handle ax_handle sliders angle_values mth_text dh_params
+    global serial_port serial_connected status_text
     
     % Inicializar variables
     angle_values = [0, 0, 0, 0, 0]; % Ángulos iniciales en radianes
+    serial_connected = false;
+    serial_port = [];
     
     % Parámetros DH del robot [theta, d, a, alpha]
     % Estos deben coincidir con tu URDF
@@ -28,7 +31,6 @@ function robot_5dof_gui()
     catch
         % Si no encuentra el URDF, crea uno básico para demo
         fprintf('No se pudo cargar el URDF. Usando modelo de demostración.\n');
-        robot = create_demo_robot();
     end
     
     % Configuración inicial
@@ -36,13 +38,16 @@ function robot_5dof_gui()
     
     % Fijar los límites de los ejes después de la primera visualización
     set_fixed_axis_limits();
+    
+    % Configurar cierre de ventana para limpiar puerto serial
+    set(fig_handle, 'CloseRequestFcn', @close_gui_callback);
 end
 
 function create_gui()
     % Crear figura principal
-    global fig_handle ax_handle sliders mth_text
+    global fig_handle ax_handle sliders mth_text status_text
     
-    fig_handle = figure('Name', 'Robot 5 GDL - Control Interactivo', ...
+    fig_handle = figure('Name', 'Robot 5 GDL - Control Interactivo con Serial', ...
                        'NumberTitle', 'off', ...
                        'Position', [100, 100, 1400, 800], ...
                        'Resize', 'on');
@@ -65,6 +70,9 @@ function create_gui()
                        'FontSize', 12, 'FontWeight', 'bold', ...
                        'Position', [0.29, 0.02, 0.69, 0.46]);
     
+    % Crear controles de comunicación serial
+    create_serial_controls(control_panel);
+    
     % Crear sliders
     create_sliders(control_panel);
     
@@ -86,7 +94,7 @@ function create_gui()
               'Style', 'pushbutton', ...
               'String', 'Cargar URDF', ...
               'FontSize', 10, ...
-              'Position', [20, 620, 120, 30], ...
+              'Position', [20, 50, 120, 30], ...
               'Callback', @load_urdf_callback);
     
     % Botón para resetear ángulos
@@ -94,7 +102,7 @@ function create_gui()
               'Style', 'pushbutton', ...
               'String', 'Reset Ángulos', ...
               'FontSize', 10, ...
-              'Position', [160, 620, 120, 30], ...
+              'Position', [160, 50, 120, 30], ...
               'Callback', @reset_angles_callback);
     
     % Botón para centrar vista
@@ -102,7 +110,7 @@ function create_gui()
               'Style', 'pushbutton', ...
               'String', 'Centrar Vista', ...
               'FontSize', 10, ...
-              'Position', [20, 580, 120, 30], ...
+              'Position', [20, 10, 120, 30], ...
               'Callback', @center_view_callback);
     
     % Botón para ajustar límites
@@ -110,32 +118,116 @@ function create_gui()
               'Style', 'pushbutton', ...
               'String', 'Ajustar Límites', ...
               'FontSize', 10, ...
-              'Position', [160, 580, 120, 30], ...
+              'Position', [160, 10, 120, 30], ...
               'Callback', @adjust_limits_callback);
+end
+
+function create_serial_controls(parent)
+    % Crear controles para comunicación serial
+    global status_text
     
-    % Botón para vista automática (NUEVO)
-    uicontrol('Parent', control_panel, ...
-              'Style', 'pushbutton', ...
-              'String', 'Vista Automática', ...
-              'FontSize', 10, ...
-              'Position', [20, 540, 120, 30], ...
-              'Callback', @auto_fit_callback);
+    % Título de sección
+    uicontrol('Parent', parent, ...
+              'Style', 'text', ...
+              'String', 'COMUNICACIÓN SERIAL', ...
+              'FontSize', 11, 'FontWeight', 'bold', ...
+              'Position', [20, 720, 260, 20], ...
+              'HorizontalAlignment', 'center', ...
+              'BackgroundColor', [0.9, 0.9, 0.9]);
     
-    % Botón de zoom in (NUEVO)
-    uicontrol('Parent', control_panel, ...
-              'Style', 'pushbutton', ...
-              'String', 'Zoom In', ...
+    % Campo de texto para puerto COM
+    uicontrol('Parent', parent, ...
+              'Style', 'text', ...
+              'String', 'Puerto COM:', ...
               'FontSize', 10, ...
-              'Position', [160, 540, 60, 30], ...
-              'Callback', @zoom_in_callback);
+              'Position', [20, 690, 80, 20], ...
+              'HorizontalAlignment', 'left');
     
-    % Botón de zoom out (NUEVO)
-    uicontrol('Parent', control_panel, ...
-              'Style', 'pushbutton', ...
-              'String', 'Zoom Out', ...
+    uicontrol('Parent', parent, ...
+              'Style', 'edit', ...
+              'String', 'COM3', ...
               'FontSize', 10, ...
-              'Position', [225, 540, 60, 30], ...
-              'Callback', @zoom_out_callback);
+              'Position', [105, 690, 60, 25], ...
+              'Tag', 'com_port_edit', ...
+              'HorizontalAlignment', 'center');
+    
+    % Campo de texto para baud rate
+    uicontrol('Parent', parent, ...
+              'Style', 'text', ...
+              'String', 'Baud Rate:', ...
+              'FontSize', 10, ...
+              'Position', [175, 690, 70, 20], ...
+              'HorizontalAlignment', 'left');
+    
+    uicontrol('Parent', parent, ...
+              'Style', 'edit', ...
+              'String', '9600', ...
+              'FontSize', 10, ...
+              'Position', [250, 690, 50, 25], ...
+              'Tag', 'baud_rate_edit', ...
+              'HorizontalAlignment', 'center');
+    
+    % Botones de conexión/desconexión
+    uicontrol('Parent', parent, ...
+              'Style', 'pushbutton', ...
+              'String', 'Conectar', ...
+              'FontSize', 10, ...
+              'Position', [20, 655, 80, 30], ...
+              'Callback', @connect_serial_callback, ...
+              'BackgroundColor', [0.7, 1, 0.7]);
+    
+    uicontrol('Parent', parent, ...
+              'Style', 'pushbutton', ...
+              'String', 'Desconectar', ...
+              'FontSize', 10, ...
+              'Position', [110, 655, 80, 30], ...
+              'Callback', @disconnect_serial_callback, ...
+              'BackgroundColor', [1, 0.7, 0.7]);
+    
+    % Botón para enviar datos manualmente
+    uicontrol('Parent', parent, ...
+              'Style', 'pushbutton', ...
+              'String', 'Enviar Datos', ...
+              'FontSize', 10, ...
+              'Position', [200, 655, 80, 30], ...
+              'Callback', @send_data_callback, ...
+              'BackgroundColor', [0.7, 0.7, 1]);
+    
+    % Checkbox para envío automático
+    uicontrol('Parent', parent, ...
+              'Style', 'checkbox', ...
+              'String', 'Envío Automático', ...
+              'FontSize', 10, ...
+              'Position', [20, 620, 150, 25], ...
+              'Value', 1, ...
+              'Tag', 'auto_send_checkbox');
+    
+    % Estado de conexión
+    status_text = uicontrol('Parent', parent, ...
+                           'Style', 'text', ...
+                           'String', 'Estado: Desconectado', ...
+                           'FontSize', 10, ...
+                           'Position', [20, 590, 260, 20], ...
+                           'HorizontalAlignment', 'left', ...
+                           'BackgroundColor', [1, 0.9, 0.9], ...
+                           'ForegroundColor', [0.8, 0, 0]);
+    
+    % Información de datos enviados
+    uicontrol('Parent', parent, ...
+              'Style', 'text', ...
+              'String', 'Formato: "J1,J2,J3,J4,J5\n"', ...
+              'FontSize', 9, ...
+              'Position', [20, 565, 260, 15], ...
+              'HorizontalAlignment', 'left', ...
+              'ForegroundColor', [0, 0, 0.8]);
+    
+    uicontrol('Parent', parent, ...
+              'Style', 'text', ...
+              'String', 'Valores en grados [-180 a +180]', ...
+              'FontSize', 9, ...
+              'Position', [20, 550, 260, 15], ...
+              'HorizontalAlignment', 'left', ...
+              'ForegroundColor', [0, 0, 0.8]);
 end
 
 function create_sliders(parent)
@@ -174,6 +266,122 @@ function create_sliders(parent)
     end
 end
 
+function connect_serial_callback(~, ~)
+    global serial_port serial_connected status_text
+    
+    try
+        % Obtener configuración del puerto
+        com_port_edit = findobj('Tag', 'com_port_edit');
+        baud_rate_edit = findobj('Tag', 'baud_rate_edit');
+        
+        port_name = get(com_port_edit, 'String');
+        baud_rate = str2double(get(baud_rate_edit, 'String'));
+        
+        % Validar baud rate
+        if isnan(baud_rate) || baud_rate <= 0
+            baud_rate = 9600;
+            set(baud_rate_edit, 'String', '9600');
+        end
+        
+        % Cerrar puerto anterior si existe
+        if ~isempty(serial_port) && isvalid(serial_port)
+            fclose(serial_port);
+            delete(serial_port);
+        end
+        
+        % Crear y configurar puerto serial
+        serial_port = serial(port_name);
+        set(serial_port, 'BaudRate', baud_rate);
+        set(serial_port, 'DataBits', 8);
+        set(serial_port, 'Parity', 'none');
+        set(serial_port, 'StopBits', 1);
+        set(serial_port, 'FlowControl', 'none');
+        set(serial_port, 'Timeout', 1);
+        
+        % Abrir conexión
+        fopen(serial_port);
+        
+        serial_connected = true;
+        
+        % Actualizar estado
+        set(status_text, 'String', ['Estado: Conectado a ', port_name], ...
+                        'BackgroundColor', [0.9, 1, 0.9], ...
+                        'ForegroundColor', [0, 0.6, 0]);
+        
+        fprintf('Conexión serial establecida: %s @ %d baud\n', port_name, baud_rate);
+        
+        % Enviar datos iniciales
+        send_serial_data();
+        
+    catch ME
+        serial_connected = false;
+        set(status_text, 'String', ['Error: ', ME.message], ...
+                        'BackgroundColor', [1, 0.9, 0.9], ...
+                        'ForegroundColor', [0.8, 0, 0]);
+        fprintf('Error de conexión serial: %s\n', ME.message);
+    end
+end
+
+function disconnect_serial_callback(~, ~)
+    global serial_port serial_connected status_text
+    
+    try
+        if ~isempty(serial_port) && isvalid(serial_port)
+            fclose(serial_port);
+            delete(serial_port);
+        end
+        
+        serial_port = [];
+        serial_connected = false;
+        
+        set(status_text, 'String', 'Estado: Desconectado', ...
+                        'BackgroundColor', [1, 0.9, 0.9], ...
+                        'ForegroundColor', [0.8, 0, 0]);
+        
+        fprintf('Conexión serial cerrada\n');
+        
+    catch ME
+        fprintf('Error al cerrar conexión serial: %s\n', ME.message);
+    end
+end
+
+function send_data_callback(~, ~)
+    send_serial_data();
+end
+
+function send_serial_data()
+    global serial_port serial_connected angle_values
+    
+    if ~serial_connected || isempty(serial_port) || ~isvalid(serial_port)
+        return;
+    end
+    
+    try
+        % Convertir ángulos a grados
+        angles_deg = rad2deg(angle_values);
+        
+        % Crear string con formato: "J1,J2,J3,J4,J5\n"
+        data_string = sprintf('%.2f,%.2f,%.2f,%.2f,%.2f\n', ...
+                             angles_deg(1), angles_deg(2), angles_deg(3), ...
+                             angles_deg(4), angles_deg(5));
+        
+        % Enviar datos
+        fprintf(serial_port, data_string);
+        
+        % Mostrar en consola (opcional)
+        fprintf('Enviado: %s', data_string);
+        
+    catch ME
+        fprintf('Error al enviar datos: %s\n', ME.message);
+        % Marcar como desconectado si hay error de comunicación
+        global serial_connected status_text
+        serial_connected = false;
+        set(status_text, 'String', 'Error: Comunicación perdida', ...
+                        'BackgroundColor', [1, 0.9, 0.9], ...
+                        'ForegroundColor', [0.8, 0, 0]);
+    end
+end
+
 function slider_callback(hObject, ~, joint_idx)
     global angle_values
     
@@ -189,6 +397,12 @@ function slider_callback(hObject, ~, joint_idx)
     
     % Actualizar visualización
     update_robot_display();
+    
+    % Enviar datos por serial si está habilitado el envío automático
+    auto_send_checkbox = findobj('Tag', 'auto_send_checkbox');
+    if ~isempty(auto_send_checkbox) && get(auto_send_checkbox, 'Value')
+        send_serial_data();
+    end
 end
 
 function reset_angles_callback(~, ~)
@@ -203,6 +417,12 @@ function reset_angles_callback(~, ~)
     end
     
     update_robot_display();
+    
+    % Enviar datos por serial si está habilitado el envío automático
+    auto_send_checkbox = findobj('Tag', 'auto_send_checkbox');
+    if ~isempty(auto_send_checkbox) && get(auto_send_checkbox, 'Value')
+        send_serial_data();
+    end
 end
 
 function center_view_callback(~, ~)
@@ -252,6 +472,25 @@ function load_urdf_callback(~, ~)
     catch ME
         msgbox(['Error al cargar URDF: ' ME.message], 'Error');
     end
+end
+
+function close_gui_callback(~, ~)
+    % Función llamada al cerrar la ventana
+    global serial_port serial_connected fig_handle
+    
+    % Cerrar conexión serial si existe
+    if serial_connected && ~isempty(serial_port) && isvalid(serial_port)
+        try
+            fclose(serial_port);
+            delete(serial_port);
+            fprintf('Conexión serial cerrada al salir\n');
+        catch
+            % Ignorar errores al cerrar
+        end
+    end
+    
+    % Cerrar figura
+    delete(fig_handle);
 end
 
 function set_fixed_axis_limits()
@@ -522,53 +761,3 @@ function update_mth_display(T_final)
     set(mth_text, 'String', matrix_str);
 end
 
-function robot = create_demo_robot()
-    % Crea un robot de demostración si no se puede cargar el URDF
-    
-    % Crear enlaces usando la clase Link
-    L1 = robotics.RigidBodyTree;
-    
-    % Definir cuerpos rígidos y joints
-    body1 = robotics.RigidBody('link1');
-    joint1 = robotics.Joint('joint1', 'revolute');
-    joint1.JointAxis = [0 0 1];
-    body1.Joint = joint1;
-    addBody(L1, body1, 'base');
-    
-    body2 = robotics.RigidBody('link2');
-    joint2 = robotics.Joint('joint2', 'revolute');
-    joint2.JointAxis = [0 1 0];
-    setFixedTransform(joint2, trvec2tform([0, 0, 0.162]));
-    body2.Joint = joint2;
-    addBody(L1, body2, 'link1');
-    
-    body3 = robotics.RigidBody('link3');
-    joint3 = robotics.Joint('joint3', 'revolute');
-    joint3.JointAxis = [0 1 0];
-    setFixedTransform(joint3, trvec2tform([0.425, 0, 0]));
-    body3.Joint = joint3;
-    addBody(L1, body3, 'link2');
-    
-    body4 = robotics.RigidBody('link4');
-    joint4 = robotics.Joint('joint4', 'revolute');
-    joint4.JointAxis = [0 1 0];
-    setFixedTransform(joint4, trvec2tform([0.392, 0, 0]));
-    body4.Joint = joint4;
-    addBody(L1, body4, 'link3');
-    
-    body5 = robotics.RigidBody('link5');
-    joint5 = robotics.Joint('joint5', 'revolute');
-    joint5.JointAxis = [0 0 1];
-    setFixedTransform(joint5, trvec2tform([0, 0, 0.133]));
-    body5.Joint = joint5;
-    addBody(L1, body5, 'link4');
-    
-    % Efector final
-    endEffector = robotics.RigidBody('end_effector');
-    endEffectorJoint = robotics.Joint('end_effector_joint', 'fixed');
-    setFixedTransform(endEffectorJoint, trvec2tform([0, 0, 0.099]));
-    endEffector.Joint = endEffectorJoint;
-    addBody(L1, endEffector, 'link5');
-    
-    robot = L1;
-end

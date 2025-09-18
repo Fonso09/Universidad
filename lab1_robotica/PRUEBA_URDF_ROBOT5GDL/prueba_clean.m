@@ -1,0 +1,201 @@
+function robot_5dof_gui()
+    % Robot 5DOF GUI - Visualizador interactivo con sliders
+    
+    % Variables globales
+    global robot fig_handle ax_handle sliders angle_values dh_params
+    
+    % Inicializar variables
+    angle_values = [0, 0, 0, 0, 0]; % Ángulos iniciales en radianes
+    
+    % Parámetros DH del robot [theta, d, a, alpha]
+    dh_params = [
+        0,    0.0435,  0,      pi/2;   % Base a Joint1
+        0,    0,      0,  0;      % Joint1 a Joint2  
+        pi/2,    0,      0.105,  pi/2;      % Joint2 a Joint3
+        0,    0.02693,  0,      -pi/2;   % Joint3 a Joint4
+        0,    0,  0,      0;      % Joint4 a Joint5
+    ];
+    
+    % Crear la interfaz gráfica
+    create_gui();
+    
+    % Cargar robot URDF (cambia la ruta por tu archivo)
+    try
+        robot = importrobot('URDF_ROBOT5GDL/urdf/URDF_ROBOT5GDL.urdf'); 
+    catch
+        fprintf('No se pudo cargar el URDF. Usando modelo de demostración.\n');
+        robot = []; % si no hay URDF, se dibuja con DH
+    end
+    
+    % Configuración inicial
+    update_robot_display();
+    set_fixed_axis_limits();
+    
+    % Configurar cierre de ventana
+    set(fig_handle, 'CloseRequestFcn', @close_gui_callback);
+end
+
+function create_gui()
+    global fig_handle ax_handle sliders
+    
+    fig_handle = figure('Name', 'Robot 5 GDL - Control Interactivo', ...
+                       'NumberTitle', 'off', ...
+                       'Position', [100, 100, 1000, 600], ...
+                       'Resize', 'on');
+    
+    % Panel izquierdo para sliders
+    control_panel = uipanel('Parent', fig_handle, ...
+                           'Title', 'Control del Robot', ...
+                           'FontSize', 12, 'FontWeight', 'bold', ...
+                           'Position', [0.02, 0.05, 0.25, 0.9]);
+    
+    % Panel derecho para visualización 3D
+    viz_panel = uipanel('Parent', fig_handle, ...
+                       'Title', 'Visualización 3D', ...
+                       'FontSize', 12, 'FontWeight', 'bold', ...
+                       'Position', [0.3, 0.05, 0.68, 0.9]);
+    
+    % Crear sliders
+    create_sliders(control_panel);
+    
+    % Crear área de visualización 3D
+    ax_handle = axes('Parent', viz_panel, 'Position', [0.1, 0.1, 0.85, 0.85]);
+    grid(ax_handle, 'on');
+    xlabel(ax_handle, 'X (m)'); ylabel(ax_handle, 'Y (m)'); zlabel(ax_handle, 'Z (m)');
+end
+
+function create_sliders(parent)
+    global sliders
+    
+    joint_names = {'Base (J1)', 'Hombro (J2)', 'Codo (J3)', 'Muñeca 1 (J4)', 'Muñeca 2 (J5)'};
+    sliders = cell(5, 1);
+    
+    for i = 1:5
+        y_pos = 400 - (i-1) * 70;
+        
+        % Etiqueta del joint
+        uicontrol('Parent', parent, ...
+                  'Style', 'text', ...
+                  'String', joint_names{i}, ...
+                  'FontSize', 10, 'FontWeight', 'bold', ...
+                  'Position', [20, y_pos + 30, 200, 20], ...
+                  'HorizontalAlignment', 'left');
+        
+        % Slider
+        sliders{i} = uicontrol('Parent', parent, ...
+                              'Style', 'slider', ...
+                              'Min', 0, 'Max', 180, ...
+                              'Value', 0, ...
+                              'Position', [20, y_pos, 200, 20], ...
+                              'Callback', {@slider_callback, i});
+        
+        % Etiqueta del valor
+        uicontrol('Parent', parent, ...
+                  'Style', 'text', ...
+                  'String', '0.0°', ...
+                  'FontSize', 9, ...
+                  'Position', [230, y_pos, 50, 20], ...
+                  'HorizontalAlignment', 'center', ...
+                  'Tag', sprintf('value_label_%d', i));
+    end
+end
+
+function slider_callback(hObject, ~, joint_idx)
+    global angle_values
+    
+    % Obtener valor del slider en grados
+    angle_deg = get(hObject, 'Value');
+    angle_values(joint_idx) = deg2rad(angle_deg);
+    
+    % Actualizar etiqueta
+    value_label = findobj('Tag', sprintf('value_label_%d', joint_idx));
+    set(value_label, 'String', sprintf('%.1f°', angle_deg));
+    
+    % Actualizar visualización
+    update_robot_display();
+end
+
+function [T_final, T_matrices] = forward_kinematics()
+    global dh_params angle_values
+    
+    T_matrices = cell(5, 1);
+    T_cumulative = eye(4);
+    
+    for i = 1:5
+        theta = dh_params(i, 1) + angle_values(i);
+        d = dh_params(i, 2);
+        a = dh_params(i, 3);
+        alpha = dh_params(i, 4);
+        
+        T_i = dh_transform(theta, d, a, alpha);
+        T_matrices{i} = T_i;
+        T_cumulative = T_cumulative * T_i;
+    end
+    
+    T_final = T_cumulative;
+end
+
+function T = dh_transform(theta, d, a, alpha)
+    ct = cos(theta); st = sin(theta);
+    ca = cos(alpha); sa = sin(alpha);
+    
+    T = [ct, -st*ca,  st*sa, a*ct;
+         st,  ct*ca, -ct*sa, a*st;
+         0,   sa,     ca,    d;
+         0,   0,      0,     1];
+end
+
+function update_robot_display()
+    global robot ax_handle angle_values
+    
+    [T_final, T_matrices] = forward_kinematics();
+    cla(ax_handle);
+    
+    if ~isempty(robot)
+        % Mostrar robot desde URDF
+        config = homeConfiguration(robot);
+        for i = 1:min(length(config), length(angle_values))
+            config(i).JointPosition = angle_values(i);
+        end
+        show(robot, config, 'Parent', ax_handle, 'Frames', 'off', 'PreservePlot', false);
+    else
+        % Dibujar con DH
+        positions = zeros(6, 3);
+        T_cumulative = eye(4);
+        positions(1, :) = T_cumulative(1:3, 4)';
+        
+        for i = 1:5
+            T_cumulative = T_cumulative * T_matrices{i};
+            positions(i+1, :) = T_cumulative(1:3, 4)';
+        end
+        
+        plot3(ax_handle, positions(:,1), positions(:,2), positions(:,3), 'b-', 'LineWidth', 3);
+        hold(ax_handle, 'on');
+        scatter3(ax_handle, positions(:,1), positions(:,2), positions(:,3), 80, 'r', 'filled');
+        hold(ax_handle, 'off');
+    end
+    
+    restore_axis_settings();
+end
+
+function set_fixed_axis_limits()
+    global ax_handle dh_params
+    max_reach = sum(dh_params(:,2)) + sum(dh_params(:,3));
+    axis_limit = max(max_reach * 0.6, 0.3);
+    
+    set(ax_handle, 'XLim', [-axis_limit, axis_limit]);
+    set(ax_handle, 'YLim', [-axis_limit, axis_limit]);
+    set(ax_handle, 'ZLim', [0, axis_limit*1.2]);
+    axis(ax_handle, 'equal');
+    grid(ax_handle, 'on');
+end
+
+function restore_axis_settings()
+    set_fixed_axis_limits();
+    view(45, 20);
+end
+
+function close_gui_callback(~, ~)
+    global fig_handle
+    delete(fig_handle);
+end
