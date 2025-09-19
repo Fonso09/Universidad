@@ -1,3 +1,94 @@
+%% Ángulos y distancias:
+q1= 0;
+q2= pi/2;
+q3= -pi/2;
+q4= 0;
+L1=  0.093;
+L2= 0.14;
+
+%% CREAMOS LA FIGURA
+figure; hold on; axis equal; view(3);
+xlabel('X'); ylabel('Y'); zlabel('Z');
+
+%%CARGAMOS STLs: 
+
+% Cargar STL 1, que es la base fija
+%Para manipularlo usar Fb, Vb y Tb
+TRb = stlread("URDF_ROBOT5GDL/meshes/base_real.stl");
+Fb = TRb.ConnectivityList;
+Vb = TRb.Points* 0.001;
+Tb = eye(4);   % como es la base, queremos que esté en el origen entonces le pasamos una transformación vacía
+drawSTL(Fb, Vb, Tb, [0.8 0.8 1]);   % azul
+
+% Cargar STL 2, que es la base rotatoria
+%Para manipularlo usar F0, V0 y T0
+TR0 = stlread("URDF_ROBOT5GDL/meshes/J0_v2.stl");
+F0 = TR0.ConnectivityList;
+V0 = TR0.Points* 0.001;
+T0 = transl(0,0,0.05)*trotz(q1); %  
+drawSTL(F0, V0, T0, [1 0.6 0.6]);   % rojo
+
+% Cargar STL 3, que es el brazo 1, o sea J1
+TR1 = stlread("URDF_ROBOT5GDL/meshes/J1_v2.stl");
+F1 = TR1.ConnectivityList;
+V1 = TR1.Points* 0.001;
+Cq1= cos(q1);
+Sq1= sin(q1);
+A1= [Cq1 0 -Sq1 0;
+    Sq1 0 -Cq1 0;
+    0 1 0 L1;
+    0 0 0 1];
+T1 = A1*trotz(q2);
+drawSTL(F1, V1, T1, [0.6 1 0.6]);   % verde
+
+% Cargar STL 4, que es el brazo 2, o sea J2
+%Para manipularlo usar F2, V2 y T2 
+TR2 = stlread("URDF_ROBOT5GDL/meshes/J2_v2.stl");
+F2 = TR2.ConnectivityList;
+V2 = TR2.Points* 0.001;
+Cq2= cos(q2);
+Sq2= sin(q2);
+A2= [Cq2 -Sq2 0 L2*Cq2;
+    Sq2 Cq2 0 L2*Sq2;
+    0 0 1 0;
+    0 0 0 1];
+T2= A1* A2*trotz(q3);
+%T4 = transl(0,0,0.22)*trotx(-pi/2); % desplazado 
+drawSTL(F2, V2, T2, [0.6 0.6 1]);  
+
+% Cargar STL 5, que es el brazo 3, o sea J3
+%Para manipular usar F3, V3 y T3
+TR3 = stlread("URDF_ROBOT5GDL/meshes/J3_v2.stl");
+F3 = TR3.ConnectivityList;
+V3 = TR3.Points*0.001;
+Cq3= cos(q3+pi/2);
+Sq3= sin(q3+pi/2);
+A3 = [Cq3 0 Sq3 0;
+    Sq3 0 -Cq3 0;
+    0 1 0 0;
+    0 0 0 1];
+T3 = A1*A2*A3*trotz(q4);
+%T5 = transl(0,0,0.27); % desplazado 
+drawSTL(F3, V3, T3, [1 0.6 0.6]); 
+
+% Cargar STL 6, que es la base del gripper, o sea J4
+% Para manipular usar F4, V4_new y T4
+TR4 = stlread("URDF_ROBOT5GDL/meshes/J4_v3STL.stl");
+F4 = TR4.ConnectivityList;
+V4 = TR4.Points*0.001;
+offset = transl(-0.01, -0.01, -0.033);   % OFFSET PARA QUE EL EJE CUADRE
+V4_new = transformSTL(V4, offset);    % reescribir vértices
+%R_offset = trotx(-pi/2);    % rotar 90° en Z
+%V6_rotated = (R_offset(1:3,1:3) * V6_new')';  % aplicar solo la rotación a vértices
+
+%T6 = transl(0,0,0.35); % desplazado 
+%drawSTL(F6, V6_new, T6, [0.3 1 0.3]);
+
+
+
+
+camlight; lighting gouraud;
+%% FUNCIONES FUNCIONALES XD
 function [Vt] = transformSTL(V, T)
 %ESTA FUNCIÓN ES LA QUE HACE TODA LA MAGIA, NOS PERMITE TRANSFORMAR
 %GEOMETRICAMENTE CADA STL USANDO SU MARCO DE REFERENCIA, LO HACE
@@ -10,73 +101,21 @@ end
 
 
 function drawSTL(F, V, T, color)
-    Vt = transformSTL(V, T); % Aquí se vuelven a dibujar los vértices según las tranformación que le pasemos xd
-    % Dibujar STL
-    patch('Faces',F,'Vertices',Vt, ...
-          'FaceColor',color, ...
-          'EdgeColor','none','FaceAlpha',0.9);
+    Vt = transformSTL(V, T); 
 
-    % DDIBUJA LOS EJES DE CADA ESLABÓN
-    O = T(1:3,4);    % origen
-    L = 0.05;        % QUÉ TAN LARGO QUERÉS LOS EJES PIBEEEE
-    quiver3(O(1),O(2),O(3), T(1,1)*L, T(2,1)*L, T(3,1)*L,'r','LineWidth',2); % X EN ROJO
-    quiver3(O(1),O(2),O(3), T(1,2)*L, T(2,2)*L, T(3,2)*L,'g','LineWidth',2); % Y EN VERDE
-    quiver3(O(1),O(2),O(3), T(1,3)*L, T(2,3)*L, T(3,3)*L,'b','LineWidth',2); % Z EN AZUL 
+    % Dibujar con trisurf en lugar de patch
+    TR = triangulation(F, Vt);
+    trisurf(TR, 'FaceColor',color, ...
+                 'EdgeColor','none', ...
+                 'FaceAlpha',0.9);
+
+    % Dibujar ejes
+    O = T(1:3,4);
+    L = 0.05;
+    quiver3(O(1),O(2),O(3), T(1,1)*L, T(2,1)*L, T(3,1)*L,'r','LineWidth',2);
+    quiver3(O(1),O(2),O(3), T(1,2)*L, T(2,2)*L, T(3,2)*L,'g','LineWidth',2);
+    quiver3(O(1),O(2),O(3), T(1,3)*L, T(2,3)*L, T(3,3)*L,'b','LineWidth',2);
 end
-
-
-figure; hold on; axis equal; view(3);
-xlabel('X'); ylabel('Y'); zlabel('Z');
-
-
-
-% Cargar STL 1
-TR1 = stlread("URDF_ROBOT5GDL/meshes/base_real.stl");
-F1 = TR1.ConnectivityList;
-V1 = TR1.Points* 0.001;
-T1 = eye(4);   % en el origen
-drawSTL(F1, V1, T1, [0.8 0.8 1]);   % azul
-
-% Cargar STL 2
-TR2 = stlread("URDF_ROBOT5GDL/meshes/J0_v2.stl");
-F2 = TR2.ConnectivityList;
-V2 = TR2.Points* 0.001;
-T2 = transl(0,0,0.1); % desplazado 
-drawSTL(F2, V2, T2, [1 0.6 0.6]);   % rojo
-
-% Cargar STL 3
-TR3 = stlread("URDF_ROBOT5GDL/meshes/J1_v2.stl");
-F3 = TR3.ConnectivityList;
-V3 = TR3.Points* 0.001;
-T3 = transl(0,0,0.18)*trotx(pi/2); % desplazado 
-drawSTL(F3, V3, T3, [0.6 1 0.6]);   % verde
-% Cargar STL 4
-TR4 = stlread("URDF_ROBOT5GDL/meshes/J2_v2.stl");
-F4 = TR4.ConnectivityList;
-V4 = TR4.Points* 0.001;
-T4 = transl(0,0,0.22)*trotx(-pi/2); % desplazado 
-drawSTL(F4, V4, T4, [0.6 0.6 1]);  
-% Cargar STL 5
-TR5 = stlread("URDF_ROBOT5GDL/meshes/J3_v2.stl");
-F5 = TR5.ConnectivityList;
-V5 = TR5.Points*0.001;
-T5 = transl(0,0,0.27); % desplazado 
-drawSTL(F5, V5, T5, [1 0.6 0.6]); 
-% Cargar STL 6
-TR6 = stlread("URDF_ROBOT5GDL/meshes/J4_v3STL.stl");
-F6 = TR6.ConnectivityList;
-V6 = TR6.Points*0.001;
-offset = transl(-0.01, -0.01, -0.033);   % OFFSET PARA QUE EL EJE CUADRE
-V6_new = transformSTL(V6, offset);    % reescribir vértices
-%R_offset = trotx(-pi/2);    % rotar 90° en Z
-%V6_rotated = (R_offset(1:3,1:3) * V6_new')';  % aplicar solo la rotación a vértices
-
-T6 = transl(0,0,0.35); % desplazado 
-drawSTL(F6, V6_new, T6, [0.3 1 0.3]);
-
-camlight; lighting gouraud;
-
-
 
 %% FUNCIONES PRIMIGENIAS:
 %Traslación
@@ -105,3 +144,4 @@ function T = troty(theta)
          -sin(theta) 0 cos(theta) 0;
          0 0 0 1];
 end
+
