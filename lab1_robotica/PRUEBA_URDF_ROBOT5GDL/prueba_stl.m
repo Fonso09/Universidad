@@ -1,10 +1,13 @@
 %% Ángulos y distancias:
 q1= 0;
-q2= pi/2;
-q3= -pi/2;
+q2= 0;
+q3= 0;
 q4= 0;
+q5= 0;
 L1=  0.093;
 L2= 0.14;
+L3= 0.103;
+L4 = 0.0284;
 
 %% CREAMOS LA FIGURA
 figure; hold on; axis equal; view(3);
@@ -67,7 +70,7 @@ A3 = [Cq3 0 Sq3 0;
     Sq3 0 -Cq3 0;
     0 1 0 0;
     0 0 0 1];
-T3 = A1*A2*A3*trotz(q4);
+T3 = A1*A2*A3*transl(0,0,L3)*trotz(q4);
 %T5 = transl(0,0,0.27); % desplazado 
 drawSTL(F3, V3, T3, [1 0.6 0.6]); 
 
@@ -78,11 +81,18 @@ F4 = TR4.ConnectivityList;
 V4 = TR4.Points*0.001;
 offset = transl(-0.01, -0.01, -0.033);   % OFFSET PARA QUE EL EJE CUADRE
 V4_new = transformSTL(V4, offset);    % reescribir vértices
+Cq4= cos(q4+pi);
+Sq4= sin(q4+pi);
+A4 = [Cq4 0 Sq4 0;
+    Sq4 0 -Cq4 0;
+    0 1 0 L3+L4;
+    0 0 0 1];
+T4 = A1*A2*A3*A4*trotz(q5);
 %R_offset = trotx(-pi/2);    % rotar 90° en Z
 %V6_rotated = (R_offset(1:3,1:3) * V6_new')';  % aplicar solo la rotación a vértices
 
 %T6 = transl(0,0,0.35); % desplazado 
-%drawSTL(F6, V6_new, T6, [0.3 1 0.3]);
+drawSTL(F4, V4_new, T4, [0.3 1 0.3]);
 
 
 
